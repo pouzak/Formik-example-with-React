@@ -1,144 +1,218 @@
 import React, { useState, useCallback, useRef } from "react";
 import "./App.css";
-import produce from "immer";
-const numRows = 42;
-const numCols = 95;
-const operations = [
-  [0, 1],
-  [0, -1],
-  [1, 0],
-  [-1, 0],
-  [1, -1],
-  [-1, 1],
-  [1, 1],
-  [-1, -1]
-];
-const App: React.FC = () => {
-  const [grid, setGrid] = useState(() => {
-    const rows = [];
-    for (let i = 0; i < numRows; i++) {
-      rows.push(Array.from(Array(numCols), () => 0));
-    }
-    return rows;
-  });
+// import produce from "immer";
+import {
+  TextField,
+  Button,
+  Checkbox,
+  Radio,
+  FormControlLabel,
+  Select,
+  MenuItem,
+  Menu
+} from "@material-ui/core";
+import {
+  Formik,
+  Field,
+  Form,
+  useField,
+  FieldAttributes,
+  FieldArray
+} from "formik";
+import * as yup from "yup";
 
-  const [running, setRunning] = useState(false);
+type MyRadioProps = { label: string } & FieldAttributes<{}>;
 
-  const runningRef = useRef(running);
-  runningRef.current = running;
+const validationSchem = yup.object({
+  firstName: yup
+    .string()
+    .required()
+    .max(10),
+  pets: yup.array().of(
+    yup.object({
+      name: yup.string().required()
+    })
+  )
+});
+const MyRadio: React.FC<MyRadioProps> = ({ label, ...props }) => {
+  const [field] = useField<{}>(props);
+  //field.name, filed,onChange...
+  return <FormControlLabel {...field} control={<Radio />} label={label} />;
+};
 
-  const runSimulation = useCallback(() => {
-    if (!runningRef.current) {
-      return;
-    }
+const MyTextField: React.FC<FieldAttributes<{}>> = ({
+  placeholder,
+  ...props
+}) => {
+  const [field, meta] = useField<{}>(props);
+  const errorText = meta.error && meta.touched ? meta.error : "";
 
-    setGrid(g => {
-      return produce(g, gridCopy => {
-        for (let i = 0; i < numRows; i++) {
-          for (let k = 0; k < numCols; k++) {
-            let neighbors = 0;
-            operations.forEach(([x, y]) => {
-              const newI = i + x;
-              const newK = k + y;
-              if (newI >= 0 && newI < numRows && newK >= 0 && newK < numCols) {
-                neighbors += g[newI][newK];
-              }
-            });
-            if (neighbors < 2 || neighbors > 3) {
-              gridCopy[i][k] = 0;
-            } else if (g[i][k] === 0 && neighbors === 3) {
-              gridCopy[i][k] = 1;
-            }
-          }
-        }
-      });
-    });
-    setTimeout(runSimulation, 30);
-  }, []);
-  // console.log(grid);
-
-  const restart = () => {
-    setGrid(() => {
-      const rows = [];
-      for (let i = 0; i < numRows; i++) {
-        rows.push(Array.from(Array(numCols), () => 0));
-      }
-      return rows;
-    });
-  };
-
-  const siaip = () => {
-    const rows = [];
-    for (let i = 0; i < numRows; i++) {
-      rows.push(Array.from(Array(numCols), () => Math.random() * 10));
-    }
-    console.log(rows);
-  };
   return (
-    <>
-      <button
-        onClick={() => {
-          setRunning(!running);
-          runningRef.current = true;
-          runSimulation();
+    <TextField
+      placeholder={placeholder}
+      {...field}
+      helperText={errorText}
+      error={!!errorText}
+    />
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <div>
+      <Formik
+        initialValues={{
+          firstName: "",
+          lastName: "",
+          isStupid: false,
+          cookies: [],
+          Yoghurt: "kiwi",
+          pets: [{ type: "cat", name: "Jimmy", id: "" + Math.random() }]
+        }}
+        validationSchema={validationSchem}
+        // validate={values => {
+        //   const errors: Record<string, string> = {};
+        //   if (values.firstName.includes("bob")) {
+        //     errors.firstName = "no bob allowed";
+        //   }
+        //   return errors;
+        // }}
+        onSubmit={(data, { setSubmitting, resetForm }) => {
+          setSubmitting(true);
+
+          setTimeout(() => {
+            console.log(data);
+            setSubmitting(false);
+            resetForm();
+          }, 1000);
         }}
       >
-        {running ? "stop" : "start"}
-      </button>
-      <button
-        onClick={() => {
-          restart();
-        }}
-      >
-        restart
-      </button>
-      <button
-        onClick={() => {
-          const rows = [];
-          for (let i = 0; i < numRows; i++) {
-            rows.push(
-              Array.from(Array(numCols), () => (Math.random() > 0.8 ? 1 : 0))
-            );
-          }
-          setGrid(rows);
-        }}
-      >
-        random
-      </button>
-      <button
-        onClick={() => {
-          siaip();
-        }}
-      >
-        siaip
-      </button>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${numCols}, 20px)`
-        }}
-      >
-        {grid.map((rows, i) =>
-          rows.map((col, k) => (
-            <div
-              onClick={() => {
-                const newGrid = produce(grid, gridCopy => {
-                  gridCopy[i][k] = grid[i][k] ? 0 : 1;
-                });
-                setGrid(newGrid);
-              }}
-              key={`${i}-${k}`}
-              style={{
-                width: 20,
-                height: 20,
-                backgroundColor: grid[i][k] ? "pink" : undefined,
-                border: "solid 1px black"
-              }}
-            ></div>
-          ))
+        {({
+          values,
+          errors,
+          isSubmitting,
+          handleChange,
+          handleBlur,
+          handleSubmit
+        }) => (
+          <Form>
+            {/* <TextField
+              name="firstName"
+              value={values.firstName}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            /> */}
+            {/* <Field
+              placeholder="First name"
+              name="firstName"
+              type="input"
+              as={TextField}
+            /> */}
+            <MyTextField
+              placeholder="First name"
+              name="firstName"
+              type="input"
+            />
+            <br />
+            {/* <TextField
+              name="lastName"
+              value={values.lastName}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            /> */}
+            <Field
+              placeholder="Last name"
+              name="lastName"
+              type="input"
+              as={TextField}
+            />
+            <br />
+            <p>Are you stupid?</p>
+            <Field name="isStupid" type="checkbox" as={Checkbox} />
+            <br />
+            <p> Select fav coockies:</p>
+            <Field
+              name="cookies"
+              value="schocolate"
+              type="checkbox"
+              as={Checkbox}
+            />
+            <Field
+              name="cookies"
+              value="with razynkos"
+              type="checkbox"
+              as={Checkbox}
+            />
+            <Field name="cookies" value="selga" type="checkbox" as={Checkbox} />
+            <br />
+            Yoghurt:
+            <br />
+            <MyRadio name="Yoghurt" type="radio" value="peach" label="peach" />
+            <MyRadio name="Yoghurt" type="radio" value="apple" label="apple" />
+            <MyRadio name="Yoghurt" type="radio" value="kiwi" label="kiwi" />
+            <br />
+            <p>Pet you have:</p>
+            <br />
+            <FieldArray name="pets">
+              {arrayHelpers => (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      arrayHelpers.push({
+                        type: "fish",
+                        name: "",
+                        id: "" + Math.random()
+                      })
+                    }
+                  >
+                    add
+                  </button>
+                  {values.pets.map((pet, index) => {
+                    // const name = `pets.${index}.name`;
+                    return (
+                      <div key={pet.id}>
+                        <MyTextField
+                          placeholder="pet name"
+                          name={`pets.${index}.name`}
+                        />
+                        <Field
+                          type="select"
+                          as={Select}
+                          name={`pets.${index}.type`}
+                        >
+                          <MenuItem value="cat">Cat</MenuItem>
+                          <MenuItem value="dog">Dog</MenuItem>
+                          <MenuItem value="fish">Fish</MenuItem>
+                        </Field>
+                        <Button
+                          onClick={() => {
+                            arrayHelpers.remove(index);
+                          }}
+                        >
+                          x
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </FieldArray>
+            <br />
+            <Button
+              disabled={isSubmitting}
+              variant="contained"
+              color={Object.keys(errors).length === 0 ? "primary" : "secondary"}
+              type="submit"
+            >
+              submit
+            </Button>
+            <pre>{JSON.stringify(values, null, 2)}</pre>
+            <pre>{JSON.stringify(errors, null, 2)}</pre>
+          </Form>
         )}
-      </div>
-    </>
+      </Formik>
+    </div>
   );
 };
 
